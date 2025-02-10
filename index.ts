@@ -1,7 +1,7 @@
-type ErrorType = string;
-type ValidationError = { path?: string; errors: ErrorType[] };
+export type ErrorType = string;
+export type ValidationError = { path?: string; errors: ErrorType[] };
 
-type ValidationResult<T> = {
+export type ValidationResult<T> = {
   isValid: boolean;
   errors: ValidationError[];
   value: T;
@@ -11,6 +11,11 @@ export type Schema<T> = (value: any) => ValidationResult<T>;
 export type Infer<V> = V extends Schema<infer T> ? T : never;
 export type ObjectSchema<T> = { [K in keyof T]: Schema<T[K]> };
 
+/**
+ * Combines multiple validators into a single schema.
+ * @param validators - An array of schema validators.
+ * @returns A schema that applies all validators in sequence.
+ */
 export function pipe<T>(...validators: Schema<T>[]): Schema<T> {
   return (value) => {
     return validators.reduce(
@@ -27,6 +32,11 @@ export function pipe<T>(...validators: Schema<T>[]): Schema<T> {
   };
 }
 
+/**
+ * Validates that the value is a string.
+ * @param validators - An array of schema validators to apply.
+ * @returns A schema that checks if the value is a string.
+ */
 export function string(...validators: Schema<string>[]): Schema<string> {
   return (value: unknown) => {
     if (typeof value !== "string") {
@@ -40,6 +50,11 @@ export function string(...validators: Schema<string>[]): Schema<string> {
   };
 }
 
+/**
+ * Validates that the value is a number.
+ * @param validators - An array of schema validators to apply.
+ * @returns A schema that checks if the value is a number.
+ */
 export function number(...validators: Schema<number>[]): Schema<number> {
   return (value: unknown) => {
     if (typeof value !== "number") {
@@ -53,6 +68,11 @@ export function number(...validators: Schema<number>[]): Schema<number> {
   };
 }
 
+/**
+ * Creates a schema that allows a value to be of a specified type or undefined or null.
+ * @param schema - The schema to validate the value against.
+ * @returns A schema that checks if the value is valid or undefined/null.
+ */
 export function optional<T>(schema: Schema<T>): Schema<T | undefined | null> {
   return (value: unknown) => {
     if (value === undefined || value === null) {
@@ -62,6 +82,11 @@ export function optional<T>(schema: Schema<T>): Schema<T | undefined | null> {
   };
 }
 
+/**
+ * Creates a validator based on a custom rule.
+ * @param rule - A function that returns an error message or undefined.
+ * @returns A schema that applies the custom validation rule.
+ */
 export function createValidator<T>(
   rule: (value: T) => ErrorType | undefined
 ): Schema<T> {
@@ -73,6 +98,12 @@ export function createValidator<T>(
   };
 }
 
+/**
+ * Validates that the value has a minimum length.
+ * @param length - The minimum length required.
+ * @param message - The error message if validation fails.
+ * @returns A schema that checks if the value meets the minimum length.
+ */
 export function minLength<T extends string | Array<any>>(
   length: number,
   message = `Minimum length is ${length}`
@@ -82,6 +113,12 @@ export function minLength<T extends string | Array<any>>(
   );
 }
 
+/**
+ * Validates that the value has a maximum length.
+ * @param length - The maximum length allowed.
+ * @param message - The error message if validation fails.
+ * @returns A schema that checks if the value meets the maximum length.
+ */
 export function maxLength<T extends string | Array<any>>(
   length: number,
   message = `Maximum length is ${length}`
@@ -91,6 +128,12 @@ export function maxLength<T extends string | Array<any>>(
   );
 }
 
+/**
+ * Validates that the value matches a specified regular expression pattern.
+ * @param regex - The regular expression to match against.
+ * @param message - The error message if validation fails.
+ * @returns A schema that checks if the value matches the pattern.
+ */
 export function pattern(
   regex: RegExp,
   message = "Invalid pattern format"
@@ -98,12 +141,23 @@ export function pattern(
   return createValidator((value) => (regex.test(value) ? undefined : message));
 }
 
+/**
+ * Validates that the value is a valid email format.
+ * @param message - The error message if validation fails.
+ * @returns A schema that checks if the value is a valid email.
+ */
 export function email(message = "Invalid email format"): Schema<string> {
   return createValidator((value) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? undefined : message
   );
 }
 
+/**
+ * Validates that the value is at least a specified minimum.
+ * @param min - The minimum value allowed.
+ * @param message - The error message if validation fails.
+ * @returns A schema that checks if the value is at least the minimum.
+ */
 export function min(
   min: number,
   message = `Must be at least ${min}`
@@ -111,6 +165,12 @@ export function min(
   return createValidator((value) => (value >= min ? undefined : message));
 }
 
+/**
+ * Validates that the value is at most a specified maximum.
+ * @param max - The maximum value allowed.
+ * @param message - The error message if validation fails.
+ * @returns A schema that checks if the value is at most the maximum.
+ */
 export function max(
   max: number,
   message = `Must be at most ${max}`
@@ -118,6 +178,11 @@ export function max(
   return createValidator((value) => (value <= max ? undefined : message));
 }
 
+/**
+ * Validates that the value is an object matching a specified schema.
+ * @param schema - The schema to validate the object against.
+ * @returns A schema that checks if the value is a valid object.
+ */
 export function object<T extends object>(
   schema: ObjectSchema<T>
 ): Schema<T> & { schema: ObjectSchema<T> } {
@@ -154,6 +219,11 @@ export function object<T extends object>(
   return Object.assign(validator, { schema });
 }
 
+/**
+ * Validates that the value is an array of items matching specified schemas.
+ * @param schema - An array of schemas to validate each item in the array.
+ * @returns A schema that checks if the value is a valid array.
+ */
 export function array<T>(...schema: Schema<T>[]): Schema<T[]> {
   return (value: T[]) => {
     if (!Array.isArray(value)) {
@@ -185,6 +255,10 @@ export function array<T>(...schema: Schema<T>[]): Schema<T[]> {
   };
 }
 
+/**
+ * Validates that the value is a boolean.
+ * @returns A schema that checks if the value is a boolean.
+ */
 export function boolean(): Schema<boolean> {
   return (value: unknown) => {
     if (typeof value !== "boolean") {
@@ -198,6 +272,10 @@ export function boolean(): Schema<boolean> {
   };
 }
 
+/**
+ * Validates that the value is a valid Date object.
+ * @returns A schema that checks if the value is a valid date.
+ */
 export function date(): Schema<Date> {
   return (value: unknown) => {
     if (!(value instanceof Date) || isNaN(value.getTime())) {
@@ -210,6 +288,12 @@ export function date(): Schema<Date> {
     return { isValid: true, errors: [], value };
   };
 }
+
+/**
+ * Validates that the value is exactly equal to a specified literal.
+ * @param expected - The expected value.
+ * @returns A schema that checks if the value matches the expected literal.
+ */
 export function literal<const T>(expected: T): Schema<T> {
   return (value) => {
     if (value !== expected) {
@@ -223,6 +307,11 @@ export function literal<const T>(expected: T): Schema<T> {
   };
 }
 
+/**
+ * Validates that the value matches one of the specified schemas.
+ * @param schemas - An array of schemas to validate against.
+ * @returns A schema that checks if the value matches one of the schemas.
+ */
 export function union<const T extends readonly unknown[]>(
   schemas: [...{ [K in keyof T]: Schema<T[K]> }]
 ): Schema<T[number]> {
@@ -249,39 +338,3 @@ export function union<const T extends readonly unknown[]>(
     };
   };
 }
-
-// Example usage with the updated schema
-const userSchema = array(
-  object({
-    date: date(),
-    email: string(minLength(8, "Minimum length is 8 for email"), email()),
-    password: string(minLength(8, "Minimum length is 8 for password")),
-    age: number(min(18)),
-    address: optional(
-      object({
-        street: string(),
-        city: string(),
-        zipCode: string(),
-        country: optional(string()),
-      })
-    ),
-    phoneNumber: optional(string(pattern(/^\+?[\d\s-]{10,}$/))),
-    hobbies: array(string()),
-    literal: literal("test"),
-    status: union([literal("active"), literal("inactive"), literal("pending")]),
-    isEnabled: union([literal("TRUE"), literal("FALSE")]),
-  })
-);
-
-const result = userSchema([
-  {
-    date: new Date(),
-    email: "test@example.com",
-    password: "password123",
-    age: 25,
-    hobbies: ["reading"],
-    literal: "test",
-  },
-]);
-
-console.log(result);
